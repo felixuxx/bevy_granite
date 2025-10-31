@@ -45,7 +45,7 @@ pub use entities::{
     GraniteEditorSerdeEntity, GraniteType, GraniteTypes, HasRuntimeData, IdentityData, MainCamera,
     MaterialNameSource, NeedsTangents, PointLightData, PromptData, PromptImportSettings, RectBrush,
     ReflectedComponent, SaveSettings, SpawnSource, TransformData, TreeHiddenEntity, UICamera,
-    VolumetricFog, OBJ
+    VolumetricFog, OBJ,
 };
 pub use events::{
     CollectRuntimeDataEvent, RequestDespawnBySource, RequestDespawnSerializableEntities,
@@ -54,9 +54,8 @@ pub use events::{
 };
 pub use setup::RegisteredTypeNames;
 pub use shared::{
-    absolute_asset_to_rel, get_current_scene_version, get_minimum_scene_version,
-    is_scene_version_compatible, mouse_to_world_delta, rel_asset_to_absolute, CursorWindowPos,
-    IconEntity, IconProxy, IconType, InputTypes, UserInput,
+    absolute_asset_to_rel, is_scene_version_compatible, mouse_to_world_delta,
+    rel_asset_to_absolute, CursorWindowPos, IconEntity, IconProxy, IconType, InputTypes, UserInput,
 };
 
 // Bevy Granite Core plugin
@@ -85,15 +84,15 @@ impl Plugin for BevyGraniteCore {
             //
             // Events
             //
-            .add_event::<RequestLoadEvent>()
-            .add_event::<WorldLoadSuccessEvent>()
-            .add_event::<RequestDespawnSerializableEntities>()
-            .add_event::<RequestDespawnBySource>()
-            .add_event::<WorldSaveSuccessEvent>()
-            .add_event::<RequestSaveEvent>()
-            .add_event::<CollectRuntimeDataEvent>()
-            .add_event::<RuntimeDataReadyEvent>()
-            .add_event::<RequestReloadEvent>()
+            .add_message::<RequestLoadEvent>()
+            .add_message::<WorldLoadSuccessEvent>()
+            .add_message::<RequestDespawnSerializableEntities>()
+            .add_message::<RequestDespawnBySource>()
+            .add_message::<WorldSaveSuccessEvent>()
+            .add_message::<RequestSaveEvent>()
+            .add_message::<CollectRuntimeDataEvent>()
+            .add_message::<RuntimeDataReadyEvent>()
+            .add_message::<RequestReloadEvent>()
             //
             // Resources
             //

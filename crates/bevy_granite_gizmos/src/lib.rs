@@ -14,16 +14,17 @@ mod ui;
 // Re-export
 pub use camera::GizmoCamera;
 pub use gizmos::{
-    despawn_rotate_gizmo, GizmoChildren, GizmoMesh, GizmoSnap, GizmoType, RotateGizmo,
-    NewGizmoConfig, TransformGizmo,
+    despawn_rotate_gizmo, GizmoChildren, GizmoMesh, GizmoSnap, GizmoType, NewGizmoConfig,
+    RotateGizmo, TransformGizmo,
 };
 pub use input::{watch_gizmo_change, DragState, GizmoAxis};
 pub use selection::{
-    ActiveSelection, EntityEvent, RequestDuplicateAllSelectionEvent, RequestDuplicateEntityEvent,
+    ActiveSelection, EntityEvents, RequestDuplicateAllSelectionEvent, RequestDuplicateEntityEvent,
     Selected,
 };
 
 // Internal plugins
+use gizmos::vertex::VertexVisualizationPlugin;
 use gizmos::GizmoPlugin;
 use input::InputPlugin;
 use selection::SelectionPlugin;
@@ -55,10 +56,11 @@ impl Plugin for BevyGraniteGizmos {
             //
             // internal
             .add_plugins(GizmoPlugin)
+            .add_plugins(VertexVisualizationPlugin) // Vertex picking must be BEFORE SelectionPlugin for priority
             .add_plugins(SelectionPlugin)
             .add_plugins(UIPlugin)
             .add_plugins(InputPlugin) // Optional
-            .add_event::<MainCameraAdded>()
+            .add_message::<MainCameraAdded>()
             //
             .add_systems(
                 Update,

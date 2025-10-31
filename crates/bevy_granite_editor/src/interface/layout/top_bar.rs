@@ -6,8 +6,7 @@ use crate::{
             RequestToggleCameraSync, RequestViewportCameraOverride, SetActiveWorld,
         },
         panels::{
-            bottom_panel::{BottomDockState, BottomTab},
-            right_panel::{SideDockState, SideTab},
+            bottom_panel::{BottomDockState, BottomTab}, right_panel::{SideDockState, SideTab}, BottomTabType, SideTabType
         },
         popups::PopupType,
         tabs::{
@@ -25,7 +24,7 @@ use bevy_granite_core::{
     absolute_asset_to_rel, entities::SaveSettings, RequestDespawnBySource,
     RequestDespawnSerializableEntities, RequestLoadEvent, RequestSaveEvent, UserInput,
 };
-use bevy_granite_gizmos::selection::events::EntityEvent;
+use bevy_granite_gizmos::selection::events::EntityEvents;
 use native_dialog::FileDialog;
 
 pub fn top_bar_ui(
@@ -177,89 +176,52 @@ pub fn top_bar_ui(
                     ui.close();
                 }
             });
+
             ui.menu_button("Panels", |ui| {
-                // Entity Editor
-                if !side_dock
-                    .dock_state
-                    .iter_all_tabs()
-                    .any(|(_, tab)| matches!(tab, SideTab::EntityEditor { .. }))
-                    && ui.button("EntityEditor").clicked()
-                {
-                    let tab = SideTab::EntityEditor {
-                        data: Box::new(EntityEditorTabData::default()),
-                    };
-                    side_dock.dock_state.push_to_focused_leaf(tab);
-                    ui.close();
+                for (tab_type, label) in vec![
+                    (SideTabType::EntityEditor, "Entity Editor"),
+                    (SideTabType::NodeTree, "Entities"),
+                    (SideTabType::EditorSettings, "Editor Settings"),
+                ] {
+                    let tab = side_dock.dock_state.find_tab_from(|tab| tab.get_type() == tab_type);
+                    let mut show = tab.is_some();
+                    let checkbox = ui.checkbox(&mut show, label);
+                    if checkbox.clicked() {
+                        match tab {
+                            Some(tab) => {
+                                side_dock.dock_state.remove_tab(tab);
+                            }
+                            None => {
+                                let tab = SideTab::default_from_type(tab_type);
+                                side_dock.dock_state.push_to_focused_leaf(tab);
+                            }
+                        }
+                        ui.close();
+                    }
                 }
 
-                // Node tree
-                if !side_dock
-                    .dock_state
-                    .iter_all_tabs()
-                    .any(|(_, tab)| matches!(tab, SideTab::NodeTree { .. }))
-                    && ui.button("Entities").clicked()
-                {
-                    let tab = SideTab::NodeTree {
-                        data: Box::new(NodeTreeTabData::default()),
-                    };
-                    side_dock.dock_state.push_to_focused_leaf(tab);
-                    ui.close();
-                }
+                ui.separator();
 
-                // Settings
-                if !side_dock
-                    .dock_state
-                    .iter_all_tabs()
-                    .any(|(_, tab)| matches!(tab, SideTab::EditorSettings { .. }))
-                    && ui.button("Editor Settings").clicked()
-                {
-                    let tab = SideTab::EditorSettings {
-                        data: Box::new(EditorSettingsTabData::default()),
-                    };
-                    side_dock.dock_state.push_to_focused_leaf(tab);
-                    ui.close();
-                }
-
-                // Log
-                if !bottom_dock
-                    .dock_state
-                    .iter_all_tabs()
-                    .any(|(_, tab)| matches!(tab, BottomTab::Log { .. }))
-                    && ui.button("Log").clicked()
-                {
-                    let tab = BottomTab::Log {
-                        data: LogTabData::default(),
-                    };
-                    bottom_dock.dock_state.push_to_focused_leaf(tab);
-                    ui.close();
-                }
-
-                // Debug
-                if !bottom_dock
-                    .dock_state
-                    .iter_all_tabs()
-                    .any(|(_, tab)| matches!(tab, BottomTab::Debug { .. }))
-                    && ui.button("Debug").clicked()
-                {
-                    let tab = BottomTab::Debug {
-                        data: DebugTabData::default(),
-                    };
-                    bottom_dock.dock_state.push_to_focused_leaf(tab);
-                    ui.close();
-                }
-
-                // Event
-                if !bottom_dock
-                    .dock_state
-                    .iter_all_tabs()
-                    .any(|(_, tab)| matches!(tab, BottomTab::Events { .. }))
-                    && ui.button("Events").clicked()
-                {
-                    let tab = BottomTab::Events {
-                        data: EventsTabData::default(),
-                    };
-                    bottom_dock.dock_state.push_to_focused_leaf(tab);
-                    ui.close();
+                for (tab_type, label) in vec![
+                    (BottomTabType::Log, "Log"),
+                    (BottomTabType::Debug, "Debug"),
+                    (BottomTabType::Events, "Events"),
+                ] {
+                    let tab = bottom_dock.dock_state.find_tab_from(|tab| tab.get_type() == tab_type);
+                    let mut show = tab.is_some();
+                    let checkbox = ui.checkbox(&mut show, label);
+                    if checkbox.clicked() {
+                        match tab {
+                            Some(tab) => {
+                                bottom_dock.dock_state.remove_tab(tab);
+                            }
+                            None => {
+                                let tab = BottomTab::default_from_type(tab_type);
+                                bottom_dock.dock_state.push_to_focused_leaf(tab);
+                            }
+                        }
+                        ui.close();
+                    }
                 }
             });
         });
@@ -336,7 +298,7 @@ pub fn top_bar_ui(
             }
             ui.separator();
             if ui.button("Deselect All (U) ").clicked() {
-                commands.trigger(EntityEvent::DeselectAll);
+                commands.trigger(EntityEvents::DeselectAll);
             }
             ui.separator();
         });

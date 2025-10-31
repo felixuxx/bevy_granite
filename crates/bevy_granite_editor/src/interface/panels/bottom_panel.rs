@@ -10,6 +10,7 @@ use crate::interface::tabs::{
 #[derive(Resource, Clone)]
 pub struct BottomDockState {
     pub dock_state: DockState<BottomTab>,
+    pub height: Option<f32>,
 }
 
 impl Default for BottomDockState {
@@ -32,8 +33,15 @@ impl Default for BottomDockState {
             surface.split_right(NodeIndex::root(), 0.33, vec![events_tab]);
         let [_events_node, _log_node] = surface.split_right(remaining, 0.5, vec![log_tab]);
 
-        Self { dock_state }
+        Self { dock_state, height: None }
     }
+}
+
+#[derive(PartialEq)]
+pub enum BottomTabType {
+    Log,
+    Debug,
+    Events,
 }
 
 #[derive(Clone, PartialEq, Serialize, Deserialize)]
@@ -52,6 +60,29 @@ pub enum BottomTab {
     },
 }
 
+impl BottomTab {
+    pub fn get_type(&self) -> BottomTabType {
+        match self {
+            BottomTab::Log { .. } => BottomTabType::Log,
+            BottomTab::Debug { .. } => BottomTabType::Debug,
+            BottomTab::Events { .. } => BottomTabType::Events,
+        }
+    }
+
+    pub fn default_from_type(tab_type: BottomTabType) -> Self {
+        match tab_type {
+            BottomTabType::Log => BottomTab::Log {
+                data: Default::default(),
+            },
+            BottomTabType::Debug => BottomTab::Debug {
+                data: Default::default(),
+            },
+            BottomTabType::Events => BottomTab::Events {
+                data: Default::default(),
+            },
+        }
+    }
+}
 #[derive(Resource)]
 pub struct BottomTabViewer;
 

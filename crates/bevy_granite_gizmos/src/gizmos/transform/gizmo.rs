@@ -1,12 +1,13 @@
 use bevy::{
     ecs::hierarchy::{ChildOf, Children},
-    pbr::{MeshMaterial3d, NotShadowCaster, NotShadowReceiver},
+    light::{NotShadowCaster, NotShadowReceiver},
+    mesh::Mesh3d,
+    pbr::MeshMaterial3d,
     prelude::{
         AlphaMode, Assets, Color, Commands, Component, Cone, Cylinder, Entity, GlobalTransform,
         Mesh, Meshable, Name, Quat, Query, ResMut, Resource, Sphere, StandardMaterial, Transform,
-        Vec3, Visibility, Without,
+        Vec3, Visibility, With, Without,
     },
-    render::mesh::Mesh3d,
 };
 use bevy_granite_core::TreeHiddenEntity;
 use bevy_granite_logging::{
@@ -15,11 +16,11 @@ use bevy_granite_logging::{
 };
 
 use crate::{
-    gizmos::{GizmoConfig, GizmoMesh, GizmoOf, GizmoRoot},
+    gizmos::{GizmoConfig, GizmoMesh, GizmoMode, GizmoOf, GizmoRoot},
     input::GizmoAxis,
 };
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub enum TransformGizmo {
     Axis,
     Plane,
@@ -111,6 +112,33 @@ pub fn spawn_transform_gizmo(
             GizmoAxis::Z,
             Color::srgba(0., 0., 1., 1.),
         );
+        build_axis_plane(
+            parent,
+            commands,
+            meshes,
+            materials,
+            gizmo_entity,
+            GizmoAxis::X,
+            Color::srgba(1., 0., 0., 1.),
+        );
+        build_axis_plane(
+            parent,
+            commands,
+            meshes,
+            materials,
+            gizmo_entity,
+            GizmoAxis::Y,
+            Color::srgba(0., 1., 0., 1.),
+        );
+        build_axis_plane(
+            parent,
+            commands,
+            meshes,
+            materials,
+            gizmo_entity,
+            GizmoAxis::Z,
+            Color::srgba(0., 0., 1., 1.),
+        );
         log!(
             LogType::Editor,
             LogLevel::Info,
@@ -160,6 +188,8 @@ fn build_gizmo_sphere(
             GizmoOf(root),
             ChildOf(parent),
         ))
+        .observe(super::drag::calculate_drag_offset)
+        .observe(super::drag::drag_end_cleanup)
         .observe(super::drag::drag_transform_gizmo)
         .observe(super::drag::dragstart_transform_gizmo);
 }
@@ -182,12 +212,6 @@ fn build_axis_cylinder(
         radius: TRANSFORM_HANDLE_WIDTH,
         height: TRANSFORM_HANDLE_LENGTH,
     }));
-
-    let plane_mesh = meshes.add(Mesh::from(bevy::prelude::Cuboid::new(
-        TRANSFORM_LINE_LENGTH * 0.33,
-        TRANSFORM_LINE_WIDTH,
-        TRANSFORM_LINE_LENGTH * 0.33,
-    )));
 
     let material = materials.add(StandardMaterial {
         base_color: color,
@@ -215,45 +239,80 @@ fn build_axis_cylinder(
         .insert(TransformGizmo::Axis)
         .insert(GizmoMesh)
         .insert(ChildOf(parent))
+        .observe(super::drag::calculate_drag_offset)
+        .observe(super::drag::drag_end_cleanup)
         .observe(super::drag::drag_transform_gizmo)
         .observe(super::drag::dragstart_transform_gizmo)
-        .with_child((
-            Mesh3d(cone_mesh),
-            MeshMaterial3d(material.clone()),
-            Transform {
-                translation: Vec3::Y * (TRANSFORM_LINE_LENGTH * 0.5),
-                ..Default::default()
-            },
-            NotShadowCaster,
-            NotShadowReceiver,
-            Name::new("Gizmo Transform Arrow"),
-            GizmoOf(root),
-            GizmoRoot(parent),
-            axis,
-            TransformGizmo::Axis,
-            GizmoMesh,
-        ))
-        .with_child((
+        .with_children(|p| {
+            p.spawn((
+                Mesh3d(cone_mesh),
+                MeshMaterial3d(material.clone()),
+                Transform {
+                    translation: Vec3::Y * (TRANSFORM_LINE_LENGTH * 0.5),
+                    ..Default::default()
+                },
+                NotShadowCaster,
+                NotShadowReceiver,
+                Name::new("Gizmo Transform Arrow"),
+                GizmoOf(root),
+                GizmoRoot(parent),
+                axis,
+                TransformGizmo::Axis,
+                GizmoMesh,
+            ));
+        });
+}
+
+fn build_axis_plane(
+    root: Entity,
+    commands: &mut Commands,
+    meshes: &mut ResMut<Assets<Mesh>>,
+    materials: &mut ResMut<Assets<StandardMaterial>>,
+    parent: Entity,
+    axis: GizmoAxis,
+    color: Color,
+) {
+    let plane_mesh = meshes.add(Mesh::from(bevy::prelude::Cuboid::new(
+        TRANSFORM_LINE_LENGTH * 0.33,
+        TRANSFORM_LINE_WIDTH,
+        TRANSFORM_LINE_LENGTH * 0.33,
+    )));
+
+    let material = materials.add(StandardMaterial {
+        base_color: color,
+        unlit: true,
+        alpha_mode: AlphaMode::Blend,
+        ..Default::default()
+    });
+
+    commands
+        .spawn((
             Mesh3d(plane_mesh),
             MeshMaterial3d(material.clone()),
             Transform {
                 translation: plane_translation(axis),
+                rotation: plane_rotation(axis),
                 ..Default::default()
             },
             NotShadowCaster,
             NotShadowReceiver,
-            Name::new("Gizmo Transform Arrow"),
+            Name::new("Gizmo Transform Plane"),
             GizmoOf(root),
             GizmoRoot(parent),
             axis,
             TransformGizmo::Plane,
             GizmoMesh,
-        ));
+            ChildOf(parent),
+        ))
+        .observe(super::drag::calculate_drag_offset)
+        .observe(super::drag::drag_end_cleanup)
+        .observe(super::drag::drag_transform_gizmo)
+        .observe(super::drag::dragstart_transform_gizmo);
 }
 
 pub fn despawn_transform_gizmo(
     commands: &mut Commands,
-    query: &mut Query<(Entity, &TransformGizmo, &Children)>,
+    query: &mut Query<(Entity, &TransformGizmoParent, &Children)>,
 ) {
     for (entity, _, _) in query.iter() {
         commands.entity(entity).try_despawn();
@@ -267,22 +326,40 @@ pub fn despawn_transform_gizmo(
 }
 
 fn plane_translation(axis: GizmoAxis) -> Vec3 {
+    let offset = TRANSFORM_LINE_LENGTH * 0.33;
     match axis {
-        GizmoAxis::X => Vec3::new(
-            -TRANSFORM_LINE_LENGTH * 0.33,
-            -TRANSFORM_LINE_LENGTH * 0.5,
-            TRANSFORM_LINE_LENGTH * 0.33,
-        ),
-        GizmoAxis::Y => Vec3::new(
-            TRANSFORM_LINE_LENGTH * 0.33,
-            -TRANSFORM_LINE_LENGTH * 0.5,
-            TRANSFORM_LINE_LENGTH * 0.33,
-        ),
-        GizmoAxis::Z => Vec3::new(
-            TRANSFORM_LINE_LENGTH * 0.33,
-            -TRANSFORM_LINE_LENGTH * 0.5,
-            -TRANSFORM_LINE_LENGTH * 0.33,
-        ),
+        GizmoAxis::X => Vec3::new(0., offset, offset),
+        GizmoAxis::Y => Vec3::new(offset, 0., offset),
+        GizmoAxis::Z => Vec3::new(offset, offset, 0.),
         _ => Vec3::ZERO,
+    }
+}
+
+fn plane_rotation(axis: GizmoAxis) -> Quat {
+    match axis {
+        GizmoAxis::X => Quat::from_rotation_z(std::f32::consts::FRAC_PI_2),
+        GizmoAxis::Y => Quat::IDENTITY,
+        GizmoAxis::Z => Quat::from_rotation_x(std::f32::consts::FRAC_PI_2),
+        _ => Quat::IDENTITY,
+    }
+}
+
+pub fn update_gizmo_rotation_for_mode(
+    mut gizmo_query: Query<(&mut Transform, &GizmoOf, &GizmoConfig), With<TransformGizmoParent>>,
+    parent_query: Query<&GlobalTransform>,
+) {
+    for (mut gizmo_transform, gizmo_of, config) in gizmo_query.iter_mut() {
+        if let Ok(parent_global_transform) = parent_query.get(gizmo_of.0) {
+            let parent_rotation = parent_global_transform.to_scale_rotation_translation().1;
+            
+            match config.mode() {
+                GizmoMode::Global => {
+                    gizmo_transform.rotation = parent_rotation.inverse();
+                }
+                GizmoMode::Local => {
+                    gizmo_transform.rotation = Quat::IDENTITY;
+                }
+            }
+        }
     }
 }

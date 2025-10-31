@@ -13,13 +13,13 @@ use crate::{
 };
 
 use bevy::{
-    core_pipeline::core_3d::Camera3d,
-    ecs::system::Commands,
-    prelude::{Camera, Entity, Name, Query, Res, ResMut, With, Without},
-    render::camera::RenderTarget,
+    camera::{Camera, Camera3d, RenderTarget},
+    ecs::system::{Commands, Query},
+    prelude::{Entity, Name, Res, ResMut},
 };
 use bevy_egui::{egui, EguiContexts};
 use bevy_granite_core::{UICamera, UserInput};
+use bevy_granite_gizmos::GizmoCamera;
 use egui_dock::DockArea;
 use serde::{Deserialize, Serialize};
 
@@ -57,21 +57,36 @@ pub fn dock_ui_system(
     editor_state: Res<EditorState>,
     user_input: Res<UserInput>,
     mut commands: Commands,
-    camera_query: Query<
-        (Entity, Option<&Name>, &Camera),
-        (With<Camera3d>, Without<UICamera>, Without<EditorViewportCamera>),
-    >,
+    camera_query: Query<(
+        Entity,
+        Option<&Name>,
+        &Camera,
+        Option<&Camera3d>,
+        Option<&EditorViewportCamera>,
+        Option<&UICamera>,
+        Option<&GizmoCamera>,
+    )>,
     viewport_camera_state: Res<ViewportCameraState>,
 ) {
     let mut camera_options: Vec<(Entity, String)> = camera_query
         .iter()
-        .filter(|(_, _, camera)| matches!(camera.target, RenderTarget::Window(_)))
-        .map(|(entity, name, _)| {
-            let label = name
-                .map(|n| n.as_str().to_string())
-                .unwrap_or_else(|| format!("Camera {}", entity.index()));
-            (entity, label)
-        })
+        .filter_map(
+            |(entity, name, camera, camera3d, editor_camera, ui_camera, gizmo_camera)| {
+                if camera3d.is_some()
+                    && editor_camera.is_none()
+                    && ui_camera.is_none()
+                    && gizmo_camera.is_none()
+                    && matches!(camera.target, RenderTarget::Window(_))
+                {
+                    let label = name
+                        .map(|n| n.as_str().to_string())
+                        .unwrap_or_else(|| format!("Camera {}", entity.index()));
+                    Some((entity, label))
+                } else {
+                    None
+                }
+            },
+        )
         .collect();
     camera_options.sort_by(|a, b| a.1.cmp(&b.1));
 
@@ -80,11 +95,12 @@ pub fn dock_ui_system(
     let screen_width = screen_rect.width();
     let screen_height = screen_rect.height();
 
-    let right_panel_width = (screen_width * 0.10).clamp(200., 1000.);
-    let bottom_panel_height = (screen_height * 0.05).clamp(100., 400.);
+    let default_side_panel_width = side_dock.width.unwrap_or((screen_width * 0.10).clamp(200., 1000.));
+    // we need a way to calculate the minimum size the bottom panel can be so if we change it in the future it wont start crashing again
+    let max_side_panel_width = screen_width - 270.; // 270 is the minimum size to fit bottom panel it will crash if smaller than this
+    let default_bottom_panel_height = bottom_dock.height.unwrap_or((screen_height * 0.05).clamp(100., 400.));
 
     let space = get_interface_config_float("ui.spacing");
-
     egui::TopBottomPanel::top("tool_panel")
         .resizable(false)
         .show(ctx, |ui| {
@@ -104,34 +120,39 @@ pub fn dock_ui_system(
         });
 
     let side_panel_position = editor_state.config.dock.side_panel_position;
-    match side_panel_position {
+    let panel_response = match side_panel_position {
         SidePanelPosition::Left => {
             egui::SidePanel::left("left_dock_panel")
                 .resizable(true)
-                .default_width(right_panel_width)
-                .width_range(250.0..=(screen_width * 0.9))
+                .default_width(default_side_panel_width)
+                .width_range(250.0..=max_side_panel_width)
                 .show(ctx, |ui| {
                     DockArea::new(&mut side_dock.dock_state)
                         .id(egui::Id::new("left_dock_area"))
                         .show_inside(ui, &mut SideTabViewer);
-                });
+                })
         }
         SidePanelPosition::Right => {
             egui::SidePanel::right("right_dock_panel")
                 .resizable(true)
-                .default_width(right_panel_width)
-                .width_range(250.0..=(screen_width * 0.9))
+                .default_width(default_side_panel_width)
+                .width_range(250.0..=max_side_panel_width)
                 .show(ctx, |ui| {
                     DockArea::new(&mut side_dock.dock_state)
                         .id(egui::Id::new("right_dock_area"))
                         .show_inside(ui, &mut SideTabViewer);
-                });
+                })
         }
+    };
+
+    let new_width = panel_response.response.rect.width();
+    if new_width != default_side_panel_width {
+        side_dock.width = Some(new_width);
     }
 
-    egui::TopBottomPanel::bottom("bottom_dock_panel")
+    let bottom_response = egui::TopBottomPanel::bottom("bottom_dock_panel")
         .resizable(true)
-        .default_height(bottom_panel_height)
+        .default_height(default_bottom_panel_height)
         .height_range(150.0..=(screen_height * 0.9))
         .show(ctx, |ui| {
             ui.add_space(space);
@@ -139,4 +160,9 @@ pub fn dock_ui_system(
                 .id(egui::Id::new("bottom_dock_area"))
                 .show_inside(ui, &mut BottomTabViewer);
         });
+
+    let new_height = bottom_response.response.rect.height();
+    if new_height != default_bottom_panel_height {
+        bottom_dock.height = Some(new_height);
+    }
 }

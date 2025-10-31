@@ -3,9 +3,9 @@ use super::{
     events::{
         MaterialDeleteEvent, MaterialHandleUpdateEvent, PopupMenuRequestedEvent,
         RequestCameraEntityFrame, RequestEditorToggle, RequestNewParent, RequestRemoveChildren,
-        RequestRemoveParents, RequestToggleCameraSync, RequestViewportCameraOverride, SetActiveWorld,
-        UserRequestGraniteTypeViaPopup, UserUpdatedComponentsEvent, UserUpdatedIdentityEvent,
-        UserUpdatedTransformEvent,
+        RequestRemoveParents, RequestToggleCameraSync, RequestViewportCameraOverride,
+        SetActiveWorld, UserRequestGraniteTypeViaPopup, UserUpdatedComponentsEvent,
+        UserUpdatedIdentityEvent, UserUpdatedTransformEvent,
     },
     layout::dock_ui_system,
     popups::{handle_popup_requests_system, show_active_popups_system},
@@ -33,24 +33,24 @@ impl Plugin for InterfacePlugin {
             //
             // Interface events
             //
-            .add_event::<MaterialHandleUpdateEvent>()
-            .add_event::<MaterialDeleteEvent>()
-            .add_event::<UserUpdatedComponentsEvent>()
-            .add_event::<UserUpdatedTransformEvent>()
-            .add_event::<UserUpdatedIdentityEvent>()
-            .add_event::<UserRequestGraniteTypeViaPopup>()
-            .add_event::<PopupMenuRequestedEvent>()
-            .add_event::<RequestEditorToggle>()
-            .add_event::<RequestCameraEntityFrame>()
-            .add_event::<RequestToggleCameraSync>()
-            .add_event::<RequestViewportCameraOverride>()
-            .add_event::<RequestNewParent>()
-            .add_event::<RequestRemoveChildren>()
-            .add_event::<RequestRemoveParents>()
-            .add_event::<SetActiveWorld>()
+            .add_message::<MaterialHandleUpdateEvent>()
+            .add_message::<MaterialDeleteEvent>()
+            .add_message::<UserUpdatedComponentsEvent>()
+            .add_message::<UserUpdatedTransformEvent>()
+            .add_message::<UserUpdatedIdentityEvent>()
+            .add_message::<UserRequestGraniteTypeViaPopup>()
+            .add_message::<PopupMenuRequestedEvent>()
+            .add_message::<RequestEditorToggle>()
+            .add_message::<RequestCameraEntityFrame>()
+            .add_message::<RequestToggleCameraSync>()
+            .add_message::<RequestNewParent>()
+            .add_message::<RequestRemoveChildren>()
+            .add_message::<RequestRemoveParents>()
+            .add_message::<SetActiveWorld>()
+            .add_message::<RequestViewportCameraOverride>()
             // need to rework
-            .add_event::<RequestReparentEntityEvent>()
-            .add_event::<RequestRemoveParentsFromEntities>()
+            .add_message::<RequestReparentEntityEvent>()
+            .add_message::<RequestRemoveParentsFromEntities>()
             //
             // Register types
             // If you want to duplicate bevy data you must register the type

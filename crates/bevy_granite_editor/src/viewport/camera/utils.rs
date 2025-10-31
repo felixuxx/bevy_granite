@@ -1,18 +1,21 @@
 use crate::{
     editor_state::INPUT_CONFIG,
-    viewport::camera::{CameraTarget, EditorViewportCamera, ViewportCameraState},
+    viewport::camera::{
+        gizmo_layers, scene_layers, ui_layers, CameraTarget, EditorViewportCamera,
+        ViewportCameraState,
+    },
 };
-use bevy::{core_pipeline::tonemapping::Tonemapping, picking::Pickable};
 use bevy::{
-    core_pipeline::core_3d::Camera3d,
+    camera::Camera3d,
     input::mouse::{MouseMotion, MouseWheel},
     prelude::{
-        Camera, Commands, EulerRot, EventReader, Local, Name, Quat, Query, Res, ResMut, Time,
+        Camera, Commands, EulerRot, Local, MessageReader, Name, Quat, Query, Res, ResMut, Time,
         Transform, Vec2, Vec3, With,
     },
-    render::view::RenderLayers,
 };
+use bevy::{core_pipeline::tonemapping::Tonemapping, picking::Pickable};
 use bevy_granite_core::{EditorIgnore, TreeHiddenEntity, UICamera, UserInput};
+use bevy_granite_gizmos::GizmoCamera;
 
 pub fn add_editor_camera(
     mut commands: Commands,
@@ -38,16 +41,40 @@ pub fn add_editor_camera(
         })
         .insert(EditorViewportCamera)
         .insert(TreeHiddenEntity)
+        .insert(scene_layers())
         .id();
 
     viewport_camera_state.set_editor_camera(editor_camera);
     viewport_camera_state.clear_override();
 }
 
+pub fn add_gizmo_overlay_camera(mut commands: Commands) {
+    commands
+        .spawn((
+            Transform::default(),
+            Camera3d::default(),
+            Name::new("Gizmo Overlay Camera"),
+            Tonemapping::None,
+            Pickable {
+                should_block_lower: false,
+                is_hoverable: false,
+            },
+            EditorIgnore::PICKING,
+        ))
+        .insert(Camera {
+            order: 1,
+            clear_color: bevy::camera::ClearColorConfig::None,
+            ..Default::default()
+        })
+        .insert(TreeHiddenEntity)
+        .insert(GizmoCamera)
+        .insert(gizmo_layers());
+}
+
 pub fn add_ui_camera(mut commands: Commands) {
     let context = bevy_egui::EguiContext::default();
 
-    let _ui_camera = commands
+    commands
         .spawn((
             Transform::from_xyz(2.0, 2.5, 5.0).looking_at(Vec3::ZERO, Vec3::Y),
             Camera3d::default(),
@@ -58,18 +85,17 @@ pub fn add_ui_camera(mut commands: Commands) {
                 should_block_lower: false,
                 is_hoverable: false,
             },
-            EditorIgnore::PICKING, // This camera should not be selectable in the editor
+            EditorIgnore::PICKING,
         ))
         .insert(Camera {
             order: 2,
+            clear_color: bevy::camera::ClearColorConfig::None,
             ..Default::default()
         })
         .insert(UICamera)
         .insert((bevy_egui::PrimaryEguiContext, context))
         .insert(TreeHiddenEntity)
-        .insert(bevy_granite_gizmos::GizmoCamera)
-        .insert(RenderLayers::layer(14)) // 14 is our UI/Gizmo layer.
-        .id();
+        .insert(ui_layers());
 }
 
 pub fn rotate_camera_towards(
@@ -89,8 +115,8 @@ pub fn rotate_camera_towards(
 pub fn handle_movement(
     query: &mut Query<&mut Transform, With<UICamera>>,
     user_input: &Res<UserInput>,
-    mouse_motion_events: &mut EventReader<MouseMotion>,
-    mouse_wheel_events: &mut EventReader<MouseWheel>,
+    mouse_motion_events: &mut MessageReader<MouseMotion>,
+    mouse_wheel_events: &mut MessageReader<MouseWheel>,
     _target_pos: &mut ResMut<CameraTarget>,
     time: Res<Time>,
     mut movement_speed: Local<f32>,
@@ -104,7 +130,7 @@ pub fn handle_movement(
 
     for event in mouse_wheel_events.read() {
         *movement_speed *= 1.1_f32.powf(event.y);
-        *movement_speed = movement_speed.clamp(base_movement_speed, 2000.0);
+        *movement_speed = movement_speed.clamp(0.1, 2000.0);
     }
 
     let rotation_sensitivity = base_rotation_sensitivity;
@@ -155,7 +181,7 @@ pub fn handle_movement(
 
 pub fn handle_zoom(
     query: &mut Query<&mut Transform, With<UICamera>>,
-    mouse_wheel_events: &mut EventReader<MouseWheel>,
+    mouse_wheel_events: &mut MessageReader<MouseWheel>,
     target_pos: &mut ResMut<CameraTarget>,
 ) {
     let zoom_speed = INPUT_CONFIG.zoom_camera_sensitivity;

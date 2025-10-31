@@ -5,7 +5,7 @@ use super::{
 };
 use crate::{gizmos::NewGizmoType, selection::ActiveSelection};
 use bevy::prelude::{
-    Assets, Children, Commands, Entity, EventReader, EventWriter, GlobalTransform, Mesh, Query,
+    Assets, Children, Commands, Entity, GlobalTransform, Mesh, MessageReader, MessageWriter, Query,
     Res, ResMut, StandardMaterial, With, Without,
 };
 use bevy_granite_logging::{
@@ -20,9 +20,9 @@ pub fn gizmo_events(
     mut transform_query: Query<&GlobalTransform, Without<TransformGizmoParent>>,
     mut rotate_query: Query<&GlobalTransform, Without<RotateGizmoParent>>,
     selected_gizmo: Res<NewGizmoType>,
-    mut spawn_events: EventReader<SpawnGizmoEvent>,
-    mut despawn_events: EventReader<DespawnGizmoEvent>,
-    mut transform_gizmo_query: Query<(Entity, &TransformGizmo, &Children)>,
+    mut spawn_events: MessageReader<SpawnGizmoEvent>,
+    mut despawn_events: MessageReader<DespawnGizmoEvent>,
+    mut transform_gizmo_query: Query<(Entity, &TransformGizmoParent, &Children)>,
     mut rotate_gizmo_query: Query<(Entity, &RotateGizmo, &Children)>,
     new_config: Res<NewGizmoConfig>,
 ) {
@@ -60,17 +60,17 @@ pub fn gizmo_events(
 pub fn gizmo_changed_watcher(
     selected_gizmo: Res<NewGizmoType>,
     mut last_selected_gizmo: ResMut<LastSelectedGizmo>,
-    mut despawn_writer: EventWriter<DespawnGizmoEvent>,
-    mut spawn_writer: EventWriter<SpawnGizmoEvent>,
+    mut despawn_writer: MessageWriter<DespawnGizmoEvent>,
+    mut spawn_writer: MessageWriter<SpawnGizmoEvent>,
     active_selection: Query<Entity, With<ActiveSelection>>,
 ) {
     if **selected_gizmo != last_selected_gizmo.value {
-        log!(
-            LogType::Editor,
-            LogLevel::OK,
-            LogCategory::Entity,
-            "Gizmo changed"
-        );
+        //log!(
+       //     LogType::Editor,
+        //    LogLevel::OK,
+        //    LogCategory::Entity,
+        //    "Gizmo changed"
+        //);
         despawn_writer.write(DespawnGizmoEvent(last_selected_gizmo.value));
         last_selected_gizmo.value = **selected_gizmo;
 

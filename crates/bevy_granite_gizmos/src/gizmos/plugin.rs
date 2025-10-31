@@ -1,13 +1,18 @@
 use super::register_embedded_rotate_gizmo_mesh;
 use super::{
-    gizmo_changed_watcher, gizmo_events, handle_init_rotate_drag, 
-    handle_rotate_input, handle_rotate_reset, scale_gizmo_by_camera_distance_system,
-    DespawnGizmoEvent, GizmoSnap, GizmoType, LastSelectedGizmo, NewGizmoConfig,
-    PreviousTransformGizmo, RotateDraggingEvent, RotateInitDragEvent, RotateResetDragEvent,
-    SpawnGizmoEvent, TransformDraggingEvent, TransformInitDragEvent, TransformResetDragEvent,
+    gizmo_changed_watcher, gizmo_events, handle_init_rotate_drag, handle_rotate_input,
+    handle_rotate_reset, scale_gizmo_by_camera_distance_system, DespawnGizmoEvent, GizmoSnap,
+    GizmoType, LastSelectedGizmo, NewGizmoConfig, PreviousTransformGizmo, RotateDraggingEvent,
+    RotateInitDragEvent, RotateResetDragEvent, SpawnGizmoEvent, TransformDraggingEvent,
+    TransformInitDragEvent, TransformResetDragEvent,
+    update_rotate_gizmo_rotation_for_mode, update_transform_gizmo_rotation_for_mode,
+};
+use crate::gizmos::transform::{
+    apply_transformations, TransitionDelta,
 };
 use crate::gizmos::{GizmoMode, NewGizmoType};
 use crate::is_gizmos_active;
+use bevy::ecs::schedule::common_conditions::any_with_component;
 use bevy::{
     app::{App, Plugin, PostUpdate, Startup, Update},
     ecs::schedule::IntoScheduleConfigs,
@@ -38,21 +43,28 @@ impl Plugin for GizmoPlugin {
             //
             // Events
             //
-            .add_event::<RotateInitDragEvent>()
-            .add_event::<RotateDraggingEvent>()
-            .add_event::<RotateResetDragEvent>()
-            .add_event::<TransformInitDragEvent>()
-            .add_event::<TransformDraggingEvent>()
-            .add_event::<TransformResetDragEvent>()
-            .add_event::<SpawnGizmoEvent>()
-            .add_event::<DespawnGizmoEvent>()
+            .add_message::<RotateInitDragEvent>()
+            .add_message::<RotateDraggingEvent>()
+            .add_message::<RotateResetDragEvent>()
+            .add_message::<TransformInitDragEvent>()
+            .add_message::<TransformDraggingEvent>()
+            .add_message::<TransformResetDragEvent>()
+            .add_message::<SpawnGizmoEvent>()
+            .add_message::<DespawnGizmoEvent>()
             //
             // Schedule system
             //
             .add_systems(Startup, register_embedded_rotate_gizmo_mesh)
             .add_systems(
                 Update,
-                (gizmo_changed_watcher, gizmo_events).run_if(is_gizmos_active),
+                (
+                    gizmo_changed_watcher,
+                    gizmo_events,
+                    update_transform_gizmo_rotation_for_mode,
+                    update_rotate_gizmo_rotation_for_mode,
+                    apply_transformations.run_if(any_with_component::<TransitionDelta>),
+                )
+                    .run_if(is_gizmos_active),
             )
             .add_systems(
                 Update,

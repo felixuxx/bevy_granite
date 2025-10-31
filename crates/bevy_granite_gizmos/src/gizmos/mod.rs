@@ -1,7 +1,7 @@
 use bevy::{
-    ecs::{component::Component, entity::Entity, resource::Resource},
+    camera::visibility::RenderLayers,
+    ecs::{component::Component, entity::Entity, lifecycle::HookContext, resource::Resource},
     prelude::{Deref, DerefMut},
-    render::view::RenderLayers,
 };
 
 pub mod distance_scaling;
@@ -10,6 +10,7 @@ pub mod manager;
 pub mod plugin;
 pub mod rotate;
 pub mod transform;
+pub mod vertex;
 
 #[derive(Clone, Default, Debug, Copy, PartialEq)]
 pub enum GizmoType {
@@ -53,7 +54,7 @@ impl NewGizmoConfig {
     }
 }
 
-#[derive(Component, Clone, Copy)]
+#[derive(Component, Clone, Copy, Debug)]
 pub enum GizmoConfig {
     Pointer,
     None,
@@ -146,10 +147,10 @@ pub struct GizmoOf(pub Entity);
 pub struct GizmoRoot(pub Entity);
 
 impl GizmoOf {
-    fn on_add(mut world: bevy::ecs::world::DeferredWorld, ctx: bevy::ecs::component::HookContext) {
+    fn on_add(mut world: bevy::ecs::world::DeferredWorld, ctx: HookContext) {
         let mut ignore = world
             .get_mut::<EditorIgnore>(ctx.entity)
-            .expect("EditorIgnore is required componet");
+            .expect("EditorIgnore is required component");
         ignore.insert(EditorIgnore::GIZMO | EditorIgnore::PICKING);
     }
 
@@ -178,10 +179,11 @@ pub use manager::{gizmo_changed_watcher, gizmo_events};
 pub use plugin::GizmoPlugin;
 pub use rotate::{
     despawn_rotate_gizmo, handle_init_rotate_drag, handle_rotate_dragging, handle_rotate_input,
-    handle_rotate_reset, register_embedded_rotate_gizmo_mesh, spawn_rotate_gizmo, RotateGizmo,
-    RotateGizmoParent,
+    handle_rotate_reset, register_embedded_rotate_gizmo_mesh, spawn_rotate_gizmo, 
+    update_gizmo_rotation_for_mode as update_rotate_gizmo_rotation_for_mode,
+    RotateGizmo, RotateGizmoParent,
 };
 pub use transform::{
-    despawn_transform_gizmo, spawn_transform_gizmo, PreviousTransformGizmo, TransformGizmo,
-    TransformGizmoParent,
+    despawn_transform_gizmo, spawn_transform_gizmo, update_gizmo_rotation_for_mode as update_transform_gizmo_rotation_for_mode, 
+    PreviousTransformGizmo, TransformGizmo, TransformGizmoParent,
 };

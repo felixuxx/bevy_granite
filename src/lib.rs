@@ -51,7 +51,7 @@
 //!
 //! ```toml
 //! [dependencies]
-//! bevy_granite = { version = "0.2.2", default-features = false, features = ["core"] }
+//! bevy_granite = { version = "0.3.0", default-features = false, features = ["core"] }
 //! ```
 
 use bevy::app::{PluginGroup, PluginGroupBuilder};
@@ -141,18 +141,16 @@ pub mod prelude {
         bevy_granite_core::{
             absolute_asset_to_rel, rel_asset_to_absolute, BridgeTag, MainCamera,
             RequestDespawnBySource, RequestDespawnSerializableEntities, RequestLoadEvent,
-            RequestReloadEvent, RequestSaveEvent, SaveSettings, SpawnSource, TreeHiddenEntity, UICamera,
-            WorldLoadSuccessEvent, WorldSaveSuccessEvent,
+            RequestReloadEvent, RequestSaveEvent, SaveSettings, SpawnSource, TreeHiddenEntity,
+            UICamera, WorldLoadSuccessEvent, WorldSaveSuccessEvent,
         },
         bevy_granite_logging::{log, LogCategory, LogLevel, LogType},
         bevy_granite_macros::{granite_component, register_editor_components, ui_callable_events},
     };
 
-
-
     #[cfg(feature = "gizmos")]
     pub use crate::bevy_granite_gizmos::{
-        EntityEvent, RequestDuplicateAllSelectionEvent, RequestDuplicateEntityEvent,
+        EntityEvents, RequestDuplicateAllSelectionEvent, RequestDuplicateEntityEvent,
     };
 
     #[cfg(feature = "editor")]
