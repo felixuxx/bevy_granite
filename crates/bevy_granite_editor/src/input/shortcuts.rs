@@ -3,7 +3,9 @@ use bevy::{
     prelude::{Children, Commands, Entity, Query, Res},
 };
 use bevy_granite_core::{
-    entities::SaveSettings, RequestLoadEvent, RequestReloadEvent, RequestSaveEvent, UserInput,
+    entities::SaveSettings,
+    events::{RequestRedoEvent, RequestUndoEvent},
+    RequestLoadEvent, RequestReloadEvent, RequestSaveEvent, UserInput,
 };
 use bevy_granite_gizmos::{selection::events::EntityEvents, Selected};
 use bevy_granite_logging::{log, LogCategory, LogLevel, LogType};
@@ -246,5 +248,33 @@ fn handle_shortcuts(
             popup: PopupType::AddRelationship,
             mouse_pos: input.mouse_pos,
         });
+    }
+
+    // Ctrl+Z
+    // Undo
+    if input.ctrl_left.pressed && input.key_z.just_pressed && !input.mouse_right.any {
+        log!(
+            LogType::Editor,
+            LogLevel::Info,
+            LogCategory::Input,
+            "(shortcut) Undo"
+        );
+        commands.write_message(RequestUndoEvent);
+    }
+
+    // Ctrl+Shift+Z
+    // Redo
+    if input.ctrl_left.pressed
+        && input.shift_left.pressed
+        && input.key_z.just_pressed
+        && !input.mouse_right.any
+    {
+        log!(
+            LogType::Editor,
+            LogLevel::Info,
+            LogCategory::Input,
+            "(shortcut) Redo"
+        );
+        commands.write_message(RequestRedoEvent);
     }
 }

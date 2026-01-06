@@ -3,6 +3,7 @@ use bevy::{diagnostic::FrameTimeDiagnosticsPlugin, prelude::*};
 
 pub mod editor_state;
 pub mod entities;
+pub mod history;
 pub mod input;
 pub mod interface;
 pub mod setup;
@@ -11,6 +12,7 @@ pub mod viewport;
 
 use editor_state::ConfigPlugin;
 use entities::AssetPlugin;
+use history::CommandHistoryPlugin;
 use input::InputPlugin;
 use interface::InterfacePlugin;
 use viewport::ViewportPlugin;
@@ -20,6 +22,10 @@ pub use editor_state::{
     UI_CONFIG,
 };
 pub use entities::get_entity_bounds_or_fallback;
+pub use history::{
+    CommandError, CommandHistory, CommandResult, EditorCommand, EntityCreateCommand,
+    EntityDeleteCommand, TransformCommand,
+};
 pub use interface::events::{
     RequestCameraEntityFrame, RequestEditorToggle, RequestNewParent, RequestRemoveChildren,
     RequestRemoveParents, RequestToggleCameraSync,
@@ -39,6 +45,7 @@ impl Plugin for BevyGraniteEditor {
             .add_plugins(FrameTimeDiagnosticsPlugin::default()) // Bevy internal frame plugin
             //
             // Internal plugins
+            .add_plugins(CommandHistoryPlugin) // Undo/Redo system
             .add_plugins(InputPlugin)
             .add_plugins(InterfacePlugin)
             .add_plugins(ViewportPlugin) // Required

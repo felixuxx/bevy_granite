@@ -37,3 +37,11 @@ pub struct RequestDespawnSerializableEntities;
 
 #[derive(Message)]
 pub struct RequestDespawnBySource(pub String);
+
+/// Request to undo the last editor action
+#[derive(Message, Default)]
+pub struct RequestUndoEvent;
+
+/// Request to redo the last undone editor action
+#[derive(Message, Default)]
+pub struct RequestRedoEvent;
