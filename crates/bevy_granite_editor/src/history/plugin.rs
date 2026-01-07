@@ -8,7 +8,8 @@ use bevy_granite_logging::{
 };
 
 use super::gizmo_integration::{
-    process_pending_transform_commands, record_user_transform_changes, PendingTransformCommands,
+    convert_gizmo_transform_events, process_pending_transform_commands,
+    record_user_transform_changes, PendingTransformCommands,
 };
 use super::history::CommandHistory;
 
@@ -25,6 +26,7 @@ impl Plugin for CommandHistoryPlugin {
             // Insert pending transform commands queue
             .insert_resource(PendingTransformCommands::new())
             // Add systems in order
+            .add_systems(Update, convert_gizmo_transform_events)
             .add_systems(Update, record_user_transform_changes)
             .add_systems(Update, process_pending_transform_commands)
             .add_systems(Update, queue_undo_redo_requests)

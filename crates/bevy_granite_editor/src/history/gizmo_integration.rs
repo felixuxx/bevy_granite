@@ -9,14 +9,16 @@
 //! is fired. This system listens to those events and queues TransformCommand entries
 //! that can be undone/redone.
 
-use bevy::ecs::message::MessageReader;
+use bevy::ecs::message::{MessageReader, MessageWriter};
 use bevy::prelude::*;
+use bevy_granite_gizmos::GizmoTransformAppliedEvent;
 use bevy_granite_logging::{
     config::{LogCategory, LogLevel, LogType},
     log,
 };
 
 use crate::interface::events::UserUpdatedTransformEvent;
+use crate::interface::tabs::entity_editor::widgets::EntityGlobalTransformData;
 
 use super::{CommandHistory, TransformCommand};
 
@@ -42,6 +44,31 @@ impl PendingTransformCommands {
 
     pub fn take_all(&mut self) -> Vec<(Entity, Transform, Transform)> {
         std::mem::take(&mut self.commands)
+    }
+}
+
+/// System that converts GizmoTransformAppliedEvent (from gizmo system) to UserUpdatedTransformEvent
+/// This bridges the gizmos crate with the editor's transform event system
+pub fn convert_gizmo_transform_events(
+    mut gizmo_events: MessageReader<GizmoTransformAppliedEvent>,
+    mut transform_event_writer: MessageWriter<UserUpdatedTransformEvent>,
+) {
+    for event in gizmo_events.read() {
+        // Convert the gizmo event to a UserUpdatedTransformEvent
+        let user_event = UserUpdatedTransformEvent {
+            entity: event.entity,
+            data: EntityGlobalTransformData {
+                global_transform_data: event.new_transform.clone(),
+                transform_data_changed: true,
+                gizmo_axis: None,
+                editing_rotation: [false; 3],
+                euler_degrees: Vec3::ZERO,
+                euler_radians: Vec3::ZERO,
+                last_synced_quat: event.new_transform.rotation,
+            },
+        };
+
+        transform_event_writer.write(user_event);
     }
 }
 

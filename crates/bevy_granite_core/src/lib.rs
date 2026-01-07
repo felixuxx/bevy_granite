@@ -49,8 +49,9 @@ pub use entities::{
 };
 pub use events::{
     CollectRuntimeDataEvent, RequestDespawnBySource, RequestDespawnSerializableEntities,
-    RequestLoadEvent, RequestLoadBatchEvent, RequestReloadEvent, RequestSaveEvent, RuntimeDataReadyEvent,
-    WorldLoadSuccessEvent, WorldLoadBatchSuccessEvent, WorldSaveSuccessEvent,
+    RequestLoadBatchEvent, RequestLoadEvent, RequestRedoEvent, RequestReloadEvent,
+    RequestSaveEvent, RequestUndoEvent, RuntimeDataReadyEvent, WorldLoadBatchSuccessEvent,
+    WorldLoadSuccessEvent, WorldSaveSuccessEvent,
 };
 pub use setup::RegisteredTypeNames;
 pub use shared::{
@@ -95,6 +96,8 @@ impl Plugin for BevyGraniteCore {
             .add_message::<CollectRuntimeDataEvent>()
             .add_message::<RuntimeDataReadyEvent>()
             .add_message::<RequestReloadEvent>()
+            .add_message::<RequestUndoEvent>()
+            .add_message::<RequestRedoEvent>()
             //
             // Resources
             //

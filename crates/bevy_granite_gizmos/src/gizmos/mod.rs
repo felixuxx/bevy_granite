@@ -172,18 +172,20 @@ impl Gizmos {
 use bevy_granite_core::EditorIgnore;
 pub use distance_scaling::scale_gizmo_by_camera_distance_system;
 pub use events::{
-    DespawnGizmoEvent, RotateDraggingEvent, RotateInitDragEvent, RotateResetDragEvent,
-    SpawnGizmoEvent, TransformDraggingEvent, TransformInitDragEvent, TransformResetDragEvent,
+    DespawnGizmoEvent, GizmoTransformAppliedEvent, RotateDraggingEvent, RotateInitDragEvent,
+    RotateResetDragEvent, SpawnGizmoEvent, TransformDraggingEvent, TransformInitDragEvent,
+    TransformResetDragEvent,
 };
 pub use manager::{gizmo_changed_watcher, gizmo_events};
 pub use plugin::GizmoPlugin;
 pub use rotate::{
     despawn_rotate_gizmo, handle_init_rotate_drag, handle_rotate_dragging, handle_rotate_input,
-    handle_rotate_reset, register_embedded_rotate_gizmo_mesh, spawn_rotate_gizmo, 
-    update_gizmo_rotation_for_mode as update_rotate_gizmo_rotation_for_mode,
-    RotateGizmo, RotateGizmoParent,
+    handle_rotate_reset, register_embedded_rotate_gizmo_mesh, spawn_rotate_gizmo,
+    update_gizmo_rotation_for_mode as update_rotate_gizmo_rotation_for_mode, RotateGizmo,
+    RotateGizmoParent,
 };
 pub use transform::{
-    despawn_transform_gizmo, spawn_transform_gizmo, update_gizmo_rotation_for_mode as update_transform_gizmo_rotation_for_mode, 
+    despawn_transform_gizmo, spawn_transform_gizmo,
+    update_gizmo_rotation_for_mode as update_transform_gizmo_rotation_for_mode,
     PreviousTransformGizmo, TransformGizmo, TransformGizmoParent,
 };
